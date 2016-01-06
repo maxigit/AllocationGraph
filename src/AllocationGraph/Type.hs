@@ -1,10 +1,10 @@
 {-# LANGUAGE TemplateHaskell #-}
 module AllocationGraph.Type 
-( Resource(..)
+{-( Resource(..)
 , Allocation(..)
 , Graph
 , ResourceKey
-) where
+)-} where
 
 import BasePrelude
 import Control.Lens
@@ -31,7 +31,7 @@ makeLenses ''Allocation
 -- | Denormalized graph.
 -- Should be build once but not updated.
 data Graph k = Graph 
-  { allocations :: [Allocation (Resource k)]
+  { _graphAllocations :: [Allocation (Resource k)]
   } deriving (Show, Read, Eq)
 
 makeLenses ''Graph

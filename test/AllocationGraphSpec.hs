@@ -3,6 +3,7 @@ module AllocationGraphSpec (main, spec) where
 import AllocationGraph
 
 import BasePrelude
+import Control.Lens hiding ((&))
 
 import Test.Hspec
 import Test.QuickCheck
@@ -28,6 +29,8 @@ spec = do
         isLeft (buildGraph resources [Allocation 15 2 1]) `shouldBe` True
     it "can't allocate more that allowed" $ do
         isLeft (buildGraph resources [Allocation 25 1 2]) `shouldBe` True
+    it "detect resources with same keys" $ do
+        isLeft (buildGraph ((a&resName .~ "a'") :resources) allocations) `shouldBe` True
   describe "A graph" $ do
     it "should have the right allocations" $ do
         allocated graph a `shouldBe` 15

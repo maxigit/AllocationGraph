@@ -21,6 +21,7 @@ library
                       , lens
                       , diagrams
                       , base-prelude
+                      , containers
   default-language:    Haskell2010
 
 executable AllocationGraph
@@ -37,6 +38,7 @@ test-suite AllocationGraph-test
   main-is:             Spec.hs
   build-depends:       base
                      , base-prelude
+                     , lens
                      , AllocationGraph
                      , hspec
                      , QuickCheck
