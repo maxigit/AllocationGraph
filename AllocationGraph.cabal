@@ -1,14 +1,14 @@
 name:                AllocationGraph
 version:             0.1.0.0
-synopsis:            Initial project template from stack, using hspec and quickcheck
+synopsis:            Draw allocation graph for FrontAccounting customers and suppliers
 description:         Please see README.md
-homepage:            http://github.com/githubuser/AllocationGraph#readme
+homepage:            http://github.com/maxigit/AllocationGraph#readme
 license:             BSD3
 license-file:        LICENSE
-author:              Author name here
-maintainer:          example@example.com
-copyright:           2010 Author Here
-category:            Web
+author:              Maxime Bourget
+maintainer:          bmx007@gmail.com
+copyright:           2015 Maxime Bourget
+category:            Tool
 build-type:          Simple
 -- extra-source-files:
 cabal-version:       >=1.10
@@ -40,4 +40,4 @@ test-suite AllocationGraph-test
 
 source-repository head
   type:     git
-  location: https://github.com/githubuser/AllocationGraph
+  location: https://github.com/maxigit/AllocationGraph
