@@ -55,10 +55,15 @@ makeLenses ''Allocation
 -- Should be build once but not updated.
 data Graph k = Graph 
   { _graphAllocations :: [Allocation (Resource k)]
-  , _resourceMap :: Map (Resource k) [Allocation (Resource k)]
+  , _graphResources :: [Resource k] -- to keep initial order
+  , _graphResourceMap :: Map (Resource k) [Allocation (Resource k)]
   } deriving (Show, Read, Eq)
 
 makeLenses ''Graph
+
+_graphSources, _graphTargets :: Graph k -> [Resource k]
+_graphSources graph = filter isSource (_graphResources graph)
+_graphTargets graph = filter isTarget (_graphResources graph)
 
 -- | Resources will be 
 data Group = Group

@@ -42,6 +42,7 @@ buildGraph resources allocs =
         else case allocations of
               Nothing -> Left "Allocations couldn't find references"
               Just als -> Right $ Graph als
+                                        resources
                                         (groupAllocByResource _allocSource als)
 
 allocated:: Ord k => Graph k -> Resource k -> Double
@@ -53,5 +54,5 @@ unallocated graph res = _resAmount res - allocated graph res
 
 
 allocsFor :: Ord k => Graph k -> Resource k -> [Allocation (Resource k)]
-allocsFor graph resource = fromMaybe [] $ Map.lookup resource (_resourceMap graph)
+allocsFor graph resource = fromMaybe [] $ Map.lookup resource (_graphResourceMap graph)
 
