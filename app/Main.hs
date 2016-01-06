@@ -1,6 +1,6 @@
 module Main where
 
-import Data.String.Strip
+import AllocationGraph
 
 main :: IO ()
-main = interact strip
+main = putStrLn "not implemented"
