@@ -5,7 +5,7 @@ module AllocationGraph.Diagrams
 ) where
 
 
-import BasePrelude hiding((.))
+import BasePrelude hiding((.), (<>))
 import Control.Lens
 
 import Diagrams.Prelude as D
@@ -32,14 +32,14 @@ renderAllocation :: (Ord k, Ord g)
 
 renderAllocation param group graph = let
   resources = _graphResources graph
-  groups = Map.fromList $ zip (map group resources) (map (:[]) resources)
-  columns = vcat (map (renderColumn param) (Map.elems groups))
+  groups = Map.fromListWith (flip (<>)) $ zip (map group resources) (map (:[]) resources)
+  columns = hcat (map (renderColumn param) (Map.elems groups))
   in columns
 
 
 -- | Render a group of resources in a column
 renderColumn :: RenderParameter k -> [Resource k ] -> Diag
-renderColumn param resources = hcat $ map (renderResource param) resources
+renderColumn param resources = vcat $ map (renderResource param) resources
 
 
 -- | Render a Resource as box with a split for each allocation
