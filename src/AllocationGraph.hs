@@ -27,20 +27,31 @@ buildGraph resources allocs =
       allocations = forM allocs $ \al -> do
         source <- Map.lookup (_allocSource al) resourceMap 
         target <- Map.lookup (_allocTarget al) resourceMap
-        return $ Allocation (al ^. allocAmount) source target
+        if isSource source && isTarget target
+           then Just $ Allocation (al ^. allocAmount) source target
+           else Nothing
+
+      groupAllocByResource resource als = Map.fromListWith (<>) (concatMap link als)
+      link alloc = [ (_allocSource alloc, [alloc])
+                   , (_allocTarget alloc, [alloc])
+                   ]
+                                       
 
   in if length resources /= Map.size resourceMap
         then Left "Some resources have the same key"
         else case allocations of
               Nothing -> Left "Allocations couldn't find references"
               Just als -> Right $ Graph als
+                                        (groupAllocByResource _allocSource als)
 
-allocated:: Graph k -> Resource k -> Double
-allocated graph res = let allocs = allocsForSource graph res
+allocated:: Ord k => Graph k -> Resource k -> Double
+allocated graph res = let allocs = allocsFor graph res
   in sum (map _allocAmount allocs)
 
-unallocated :: Graph k -> Resource k -> Double
+unallocated :: Ord k => Graph k -> Resource k -> Double
 unallocated graph res = _resAmount res - allocated graph res
 
-allocsForSource :: Graph k -> Resource k -> [Allocation (Resource k)]
-allocsForSource = error "allocsForSource not implemented"
+
+allocsFor :: Ord k => Graph k -> Resource k -> [Allocation (Resource k)]
+allocsFor graph resource = fromMaybe [] $ Map.lookup resource (_resourceMap graph)
+
