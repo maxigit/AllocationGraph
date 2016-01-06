@@ -15,11 +15,11 @@ cabal-version:       >=1.10
 
 library
   hs-source-dirs:      src
-  exposed-modules:     AllocationGraph
+  exposed-modules:     AllocationGraph, AllocationGraph.Diagrams
   other-modules:       AllocationGraph.Type
   build-depends:       base >= 4.7 && < 5
                       , lens
-                      , diagrams
+                      , diagrams-lib, diagrams-svg
                       , base-prelude
                       , containers
   default-language:    Haskell2010
@@ -30,6 +30,7 @@ executable AllocationGraph
   ghc-options:         -threaded -rtsopts -with-rtsopts=-N
   build-depends:       base
                      , AllocationGraph
+                     , diagrams-svg
   default-language:    Haskell2010
 
 test-suite AllocationGraph-test

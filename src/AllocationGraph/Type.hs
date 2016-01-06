@@ -14,7 +14,7 @@ import Data.Map (Map)
 import qualified Data.Map as Map
 
 
-data ResourceType = Source | Target {- | SourceAndTarget -} deriving (Show, Read, Eq)
+data ResourceType = Source | Target {- | SourceAndTarget -} deriving (Show, Read, Eq, Ord)
 
 _isSource :: ResourceType -> Bool
 _isSource Target = False
