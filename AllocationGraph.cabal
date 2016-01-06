@@ -16,6 +16,7 @@ cabal-version:       >=1.10
 library
   hs-source-dirs:      src
   exposed-modules:     AllocationGraph
+  other-modules:       AllocationGraph.Type
   build-depends:       base >= 4.7 && < 5
                       , lens
                       , diagrams
@@ -35,6 +36,7 @@ test-suite AllocationGraph-test
   hs-source-dirs:      test
   main-is:             Spec.hs
   build-depends:       base
+                     , base-prelude
                      , AllocationGraph
                      , hspec
                      , QuickCheck
