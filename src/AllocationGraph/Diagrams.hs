@@ -59,10 +59,14 @@ renderResource param graph resource = hcat (revIf rType (map alignT [tag , alloc
     w = paramWidth param amount
     h = paramHeight param amount
 
-    allocs = mconcat (map alignT  [allocBoxes, rect w h # bg red])
+    allocs = vcat ([allocBoxes, unallocatedBox ])
     revIf Source l = l
     revIf Target l = reverse l
-    allocBoxes = vcat (map (allocBox param rType) (allocsFor graph resource))
+    allocBoxes = vcat (map (allocBox param rType) (allocsFor graph resource))  
+    ua = unallocated graph resource
+    unallocatedBox = if  ua == 0 then mempty
+                                 else renderLabel param (printf "%.2f" ua)
+                                      <> rect w (paramHeight param ua) # bg red
 
 renderLabel :: RenderParameter k -> String -> Diag
 renderLabel param s = text s # rotateBy (1/4) # fontSize (local ((paramWidth param (error "please change this function to not take any parameters"))/4))
