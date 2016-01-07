@@ -53,7 +53,8 @@ renderResource :: (Ord k, Show k)
 renderResource param graph resource = hcat (revIf rType (map alignT [tag , allocs]))
   where
     rType = _resType resource
-    tag = rect w h
+    tag = label <> rect w h 
+    label = renderLabel param (printf "%s: %.2f" (_resName resource) (_resAmount resource) )
     amount = _resAmount resource
     w = paramWidth param amount
     h = paramHeight param amount
@@ -63,15 +64,18 @@ renderResource param graph resource = hcat (revIf rType (map alignT [tag , alloc
     revIf Target l = reverse l
     allocBoxes = vcat (map (allocBox param rType) (allocsFor graph resource))
 
+renderLabel :: RenderParameter k -> String -> Diag
+renderLabel param s = text s # rotateBy (1/4) # fontSize (local ((paramWidth param (error "please change this function to not take any parameters"))/4))
 
 allocBox :: (Ord k, Show k)
          => RenderParameter k
          -> ResourceType
          -> Allocation (Resource k)
          -> Diag
-allocBox param rType alloc = rect w h # bg green # named (nameAllocBox rType alloc)
+allocBox param rType alloc = label  <> rect w h # bg green # named (nameAllocBox rType alloc)
   where w = paramWidth param  undefined
         h = paramHeight param (_allocAmount alloc)
+        label = renderLabel param (printf "%.2f" (_allocAmount alloc))
 
 
 -- | Give a unique name to the edge of an allocation.
