@@ -36,7 +36,9 @@ renderAllocation param group graph = let
   groups = Map.fromListWith (flip (<>)) $ zip (map group resources) (map (:[]) resources)
   columns = hsep (500 {-paramSep param-}) (map (renderColumn param graph) (Map.elems groups))
   arrows = map (joinAllocBox param columns) (_graphAllocations graph)
-  in (mconcat (arrows)) -- `atop` columns
+  in case arrows of -- `atop` columns
+      [] -> columns -- 
+      as -> mconcat as
 
 
 -- | Render a group of resources in a column
@@ -53,9 +55,9 @@ renderResource :: (Ord k, Show k)
 renderResource param graph resource = hcat (revIf rType (map alignT [tag , allocs]))
   where
     rType = _resType resource
-    tag = label <> rect w h 
-    label = renderLabel param (printf "%s: %.2f" (_resName resource) (_resAmount resource) )
-    amount = _resAmount resource
+    tag = label <> rect w h  # lwL 1
+    label = renderLabel param (printf "%s: %.2f" (_resName resource) amount)
+    amount = abs (_resAmount resource)
     w = paramWidth param amount
     h = paramHeight param amount
 
@@ -63,10 +65,10 @@ renderResource param graph resource = hcat (revIf rType (map alignT [tag , alloc
     revIf Source l = l
     revIf Target l = reverse l
     allocBoxes = vcat (map (allocBox param rType) (allocsFor graph resource))  
-    ua = unallocated graph resource
+    ua = abs (unallocated graph resource)
     unallocatedBox = if  ua == 0 then mempty
                                  else renderLabel param (printf "%.2f" ua)
-                                      <> rect w (paramHeight param ua) # bg red
+                                      <> rect w (paramHeight param ua) # bg red #lwL 1
 
 renderLabel :: RenderParameter k -> String -> Diag
 renderLabel param s = text s # rotateBy (1/4) # fontSize (local ((paramWidth param (error "please change this function to not take any parameters"))/4))
@@ -76,10 +78,10 @@ allocBox :: (Ord k, Show k)
          -> ResourceType
          -> Allocation (Resource k)
          -> Diag
-allocBox param rType alloc = label  <> rect w h # bg green # named (nameAllocBox rType alloc)
+allocBox param rType alloc = label  <> rect w h # bg green # named (nameAllocBox rType alloc) # lwL 1
   where w = paramWidth param  undefined
-        h = paramHeight param (_allocAmount alloc)
-        label = renderLabel param (printf "%.2f" (_allocAmount alloc))
+        h = abs $ paramHeight param (_allocAmount alloc)
+        label = renderLabel param (printf "%.2f" (abs (_allocAmount alloc)))
 
 
 -- | Give a unique name to the edge of an allocation.
