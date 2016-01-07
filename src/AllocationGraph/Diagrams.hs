@@ -2,6 +2,7 @@
 module AllocationGraph.Diagrams 
 ( renderAllocation
 , RenderParameter(..)
+, defaultRenderParameters
 ) where
 
 
@@ -26,6 +27,8 @@ data RenderParameter k = RenderParameter
   , paramSep :: Double
   , paramSourceColour :: Resource k -> D.Colour Double
   }
+
+defaultRenderParameters = RenderParameter (50) (const (*5)) 10 (const green)
 -- | Generate a allocation graph using diagrams.
 -- Resources are vertical displayed in columns
 renderAllocation :: (Ord k, Show k, Ord g)
