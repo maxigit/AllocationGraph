@@ -27,4 +27,4 @@ main :: IO ()
 main = mainWith diag 
   where
     diag = renderAllocation param _resType testGraph
-    param = RenderParameter (const 50) (*5) 10
+    param = RenderParameter (50) (const (*5)) 10

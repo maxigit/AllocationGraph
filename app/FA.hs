@@ -15,15 +15,19 @@ data Options = Options
   }
 main :: IO()
 main = do 
-  let supplier_id = 2
+  (supp:args) <- getArgs
+  let supplier_id = read supp
   credentials <- read <$> readFile "credentials.cfg"
   conn <- SQL.connect credentials
   (resources, allocations) <- loadAllocations conn supplier_id
-  let param = RenderParameter (const 50) (/50) 10
+  let param = RenderParameter width height width
       diag = renderAllocation param _resType graph
       Right graph = buildGraph resources allocations
+      width = 10
+      height res box = width * log' where
+             log' = logBase 5 (abs box + 1)
 
-  mainWith diag
+  withArgs args $ mainWith diag
 
 
 supplierInvoice = 20
@@ -35,8 +39,9 @@ supplierDeposit = 25
 type Key = (Int, Int)
 loadAllocations :: SQL.Connection -> Int -> IO ([Resource Key], [Allocation Key])
 loadAllocations conn supp = do
-  let resourceQuery = fromString $  "SELECT trans_no, type, supp_reference, ov_amount FROM 0_supp_trans WHERE "
+  let resourceQuery = fromString $  "SELECT trans_no, type, reference, supp_reference, DATE_FORMAT(tran_date, '%Y-%m-%d'), ov_amount FROM 0_supp_trans WHERE "
                       ++ whereC "" 
+                      ++ " ORDER BY tran_date, trans_no"
       whereC table = table ++ "type IN " ++ (show (supplierInvoice, supplierCredit, supplierPayment, supplierDeposit))
                           ++ " AND " ++ table ++ "supplier_id = " ++ (show supp)
   print resourceQuery
@@ -62,14 +67,29 @@ loadAllocations conn supp = do
 
   let allocs = map toAlloc rows'
   mapM_ print allocs
-  return (resources, allocs)
 
-  where toResource (no, t, ref, amount) = Resource ref (no,t) (resourceType t) amount
+  let resources' = take 50000 resources
+      allocs' = filterAllocations resources' allocs
+  -- return (resources, allocs)
+  return (resources', allocs')
+
+  where toResource :: (Int, Int, String, String, String, Double) -> Resource Key
+        toResource (no, t, ref, supp_ref, date, amount) = Resource (name t ref supp_ref date) (no,t) (resourceType t) amount
         resourceType t | t `elem` [supplierInvoice, supplierDeposit] = Target
                        | otherwise = Source
+
+        name :: Int -> String -> String -> String -> String
+        name t ref supp_ref date = printf ("%s-%s  [ %s ]  %s" :: String)
+                                  (showType t) ref supp_ref date
+          
+        showType :: Int -> String
+        showType 22 = "Payment"
+        showType 21 = "Credit"
+        showType 20 = "Invoice"
+        showType 25 = "Deposit"
+
         toAlloc (no_from, type_from, no_to, type_to, amount) =
                 Allocation amount (no_from, type_from) (no_to, type_to)
-
 
 
 
