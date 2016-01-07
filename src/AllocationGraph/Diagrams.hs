@@ -24,7 +24,7 @@ data RenderParameter k = RenderParameter
   }
 -- | Generate a allocation graph using diagrams.
 -- Resources are vertical displayed in columns
-renderAllocation :: (Ord k, Ord g)
+renderAllocation :: (Ord k, Show k, Ord g)
                         => RenderParameter k
                         -> (Resource k -> g)      -- ^ function to group resource
                         -> Graph k      -- ^ the graph to render
@@ -34,23 +34,25 @@ renderAllocation :: (Ord k, Ord g)
 renderAllocation param group graph = let
   resources = _graphResources graph
   groups = Map.fromListWith (flip (<>)) $ zip (map group resources) (map (:[]) resources)
-  columns = hsep (paramSep param) (map (renderColumn param graph) (Map.elems groups))
-  in columns
+  columns = hsep (500 {-paramSep param-}) (map (renderColumn param graph) (Map.elems groups))
+  arrows = map (joinAllocBox param columns) (_graphAllocations graph)
+  in (mconcat (arrows)) -- `atop` columns
 
 
 -- | Render a group of resources in a column
-renderColumn :: Ord k => RenderParameter k -> Graph k -> [Resource k ] -> Diag
+renderColumn :: (Ord k, Show k) => RenderParameter k -> Graph k -> [Resource k ] -> Diag
 renderColumn param graph resources = vsep (paramSep param) $ map (renderResource param graph) resources
 
 
 -- | Render a Resource as box with a split for each allocation
-renderResource :: Ord k
+renderResource :: (Ord k, Show k)
                => RenderParameter k
                -> Graph k
                -> Resource k
                -> Diag
-renderResource param graph resource = hcat (revIf (_resType resource) (map alignT [tag , allocs]))
+renderResource param graph resource = hcat (revIf rType (map alignT [tag , allocs]))
   where
+    rType = _resType resource
     tag = rect w h
     amount = _resAmount resource
     w = paramWidth param amount
@@ -59,18 +61,27 @@ renderResource param graph resource = hcat (revIf (_resType resource) (map align
     allocs = mconcat (map alignT  [allocBoxes, rect w h # bg red])
     revIf Source l = l
     revIf Target l = reverse l
-    allocBoxes = vcat (map (allocBox param) (allocsFor graph resource))
+    allocBoxes = vcat (map (allocBox param rType) (allocsFor graph resource))
 
 
-allocBox :: Ord k
+allocBox :: (Ord k, Show k)
          => RenderParameter k
+         -> ResourceType
          -> Allocation (Resource k)
          -> Diag
-allocBox param alloc = rect w h # bg green
+allocBox param rType alloc = rect w h # bg green # named (nameAllocBox rType alloc)
   where w = paramWidth param  undefined
         h = paramHeight param (_allocAmount alloc)
 
-    
+
+-- | Give a unique name to the edge of an allocation.
+-- This name will be used to draw arrows between boxes.
+nameAllocBox :: Show k => ResourceType -> Allocation (Resource k) -> String
+nameAllocBox t al = show t ++ key (_allocSource al) ++ "-" ++ key (_allocTarget al)
+  where
+    key resource = show ( _resKey  resource)
 
 
-
+joinAllocBox :: Show k => RenderParameter k -> Diag -> Allocation (Resource k) -> Diag
+joinAllocBox param diag alloc = diag # connect (nameAllocBox Source alloc)
+                                               (nameAllocBox Target alloc)
