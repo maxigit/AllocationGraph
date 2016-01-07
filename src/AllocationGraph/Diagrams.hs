@@ -8,7 +8,7 @@ module AllocationGraph.Diagrams
 import BasePrelude hiding((.), (<>))
 -- import Control.Lens
 
-import Diagrams.Prelude as D
+import Diagrams.Prelude as D hiding((&))
 import Diagrams.Backend.SVG
 import Data.Map (Map)
 import qualified Data.Map as Map
@@ -93,5 +93,8 @@ nameAllocBox t al = show t ++ key (_allocSource al) ++ "-" ++ key (_allocTarget 
 
 
 joinAllocBox :: Show k => RenderParameter k -> Diag -> Allocation (Resource k) -> Diag
-joinAllocBox param diag alloc = diag # connect (nameAllocBox Source alloc)
+joinAllocBox param diag alloc = diag # connect' (with & shaftStyle  %~ lwL 1
+                                                      & lengths .~ 1
+                                                )
+                                                (nameAllocBox Source alloc)
                                                (nameAllocBox Target alloc)
