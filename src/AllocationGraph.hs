@@ -56,3 +56,12 @@ unallocated graph res = _resAmount res - allocated graph res
 allocsFor :: Ord k => Graph k -> Resource k -> [Allocation (Resource k)]
 allocsFor graph resource = fromMaybe [] $ Map.lookup resource (_graphResourceMap graph)
 
+
+-- | Keep allocations only related to the given resources 
+-- both side of the allocation needs to be present so we can draw it properly
+filterAllocations :: Ord k =>  [Resource k] -> [Allocation k] -> [Allocation k]
+filterAllocations resources allocs = let
+  resourceMap = Map.fromList $ zip (map _resKey resources) [1..] -- we shoudl use a set
+  findAs alloc field = isJust $ Map.lookup (field alloc) resourceMap
+  ok alloc = and $ map (findAs alloc) [_allocSource, _allocTarget]
+  in filter ok allocs
