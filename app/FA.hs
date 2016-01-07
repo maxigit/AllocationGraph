@@ -39,7 +39,10 @@ supplierDeposit = 25
 type Key = (Int, Int)
 loadAllocations :: SQL.Connection -> Int -> IO ([Resource Key], [Allocation Key])
 loadAllocations conn supp = do
-  let resourceQuery = fromString $  "SELECT trans_no, type, reference, supp_reference, DATE_FORMAT(tran_date, '%Y-%m-%d'), ov_amount FROM 0_supp_trans WHERE "
+  let resourceQuery = fromString $ 
+                      "SELECT trans_no, type, reference, supp_reference, DATE_FORMAT(tran_date, '%Y-%m-%d')"
+                      ++ " , ov_amount+ov_discount+ov_gst"
+                      ++ " FROM 0_supp_trans WHERE "
                       ++ whereC "" 
                       ++ " ORDER BY tran_date, trans_no"
       whereC table = table ++ "type IN " ++ (show (supplierInvoice, supplierCredit, supplierPayment, supplierDeposit))

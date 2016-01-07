@@ -50,7 +50,7 @@ allocated graph res = let allocs = allocsFor graph res
   in sum (map _allocAmount allocs)
 
 unallocated :: Ord k => Graph k -> Resource k -> Double
-unallocated graph res = _resAmount res - allocated graph res
+unallocated graph res = abs (_resAmount res) - abs ( allocated graph res)
 
 
 allocsFor :: Ord k => Graph k -> Resource k -> [Allocation (Resource k)]
