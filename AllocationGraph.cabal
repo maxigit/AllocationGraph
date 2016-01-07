@@ -42,6 +42,8 @@ executable FA
                      , diagrams-svg
                      , base-prelude
                      , mysql-simple
+                     , containers
+                     , palette
   default-language:    Haskell2010
 
 test-suite AllocationGraph-test

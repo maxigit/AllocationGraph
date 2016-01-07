@@ -8,6 +8,10 @@ import Database.MySQL.Simple as SQL
 import Database.MySQL.Simple.QueryResults
 
 import Data.String
+import qualified Data.Map as Map
+import qualified Data.Map (Map)
+
+import qualified Data.Colour.Palette.BrewerSet as K
 
 
 data Options = Options
@@ -20,13 +24,19 @@ main = do
   credentials <- read <$> readFile "credentials.cfg"
   conn <- SQL.connect credentials
   (resources, allocations) <- loadAllocations conn supplier_id
-  let param = RenderParameter width height width
+  let param = RenderParameter width height width sourceColour
       diag = renderAllocation param _resType graph
       Right graph = buildGraph resources allocations
       width = 10
       height res box = width * log' where
              log' = logBase 5 (abs box + 1)
 
+      -- We want to give a different colour for each source in 
+      -- order they are displayed. For that we build a Map
+      sources = filter isSource resources
+      colours = cycle $ K.brewerSet K.Set2 8
+      resourceToColour = Map.fromList $ zip sources colours
+      sourceColour res = fromJust $ Map.lookup res resourceToColour
   withArgs args $ mainWith diag
 
 
@@ -93,7 +103,4 @@ loadAllocations conn supp = do
 
         toAlloc (no_from, type_from, no_to, type_to, amount) =
                 Allocation amount (no_from, type_from) (no_to, type_to)
-
-
-
 

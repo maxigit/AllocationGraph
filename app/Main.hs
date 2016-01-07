@@ -5,7 +5,6 @@ import AllocationGraph.Diagrams
 
 import Diagrams.Backend.SVG.CmdLine (mainWith)
 
-
 -- * 
 testGraph = let
   a,b :: Resource Int
@@ -27,4 +26,4 @@ main :: IO ()
 main = mainWith diag 
   where
     diag = renderAllocation param _resType testGraph
-    param = RenderParameter (50) (const (*5)) 10
+    param = RenderParameter (50) (const (*5)) 10 (error "todo")

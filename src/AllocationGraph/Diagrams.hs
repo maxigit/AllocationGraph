@@ -24,6 +24,7 @@ data RenderParameter k = RenderParameter
                    --           ^                  allocation amount
                    --                     ^        display size
   , paramSep :: Double
+  , paramSourceColour :: Resource k -> D.Colour Double
   }
 -- | Generate a allocation graph using diagrams.
 -- Resources are vertical displayed in columns
@@ -87,12 +88,13 @@ allocBox :: (Ord k, Show k)
          -> Resource k
          -> Allocation (Resource k)
          -> Diag
-allocBox param resource alloc = label  <> rect w h # bg green # named (nameAllocBox rType alloc) # lwL 1
+allocBox param resource alloc = label  <> rect w h # bg colour # named (nameAllocBox rType alloc) # lwL 1
   where w = paramWidth param
         h = abs $ paramBoxHeight param amount (_allocAmount alloc)
         label = renderLabel param (printf "%.2f" (abs (_allocAmount alloc)))
         amount = abs $ _resAmount resource
         rType = _resType resource
+        colour = paramSourceColour param (_allocSource alloc)
 
 
 -- | Give a unique name to the edge of an allocation.
