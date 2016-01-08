@@ -31,7 +31,7 @@ buildGraph resources allocs =
            then Just $ Allocation (al ^. allocAmount) source target
            else Nothing
 
-      groupAllocByResource resource als = Map.fromListWith (<>) (concatMap link als)
+      groupAllocByResource resource als = Map.fromListWith (flip (<>)) (concatMap link als)
       link alloc = [ (_allocSource alloc, [alloc])
                    , (_allocTarget alloc, [alloc])
                    ]
@@ -70,12 +70,18 @@ filterAllocations resources allocs = let
 -- as the source. This should minimize arrows crossing.
 orderTargets graph = let
   (sources, targets) = partition isSource (_graphResources graph)
-  targets'  = concatMap (\s -> map _allocTarget (allocsFor graph s)) sources ++ targets
+  targets'  = (concatMap (\s -> map _allocTarget (allocsFor graph s)) sources) ++ targets
   -- we need then to remove duplicates but still keeping the initial order
   -- we add targets again to put add the end all the target which don't have allocations
-  go [] _ = []
-  go (t:ts) done = case Map.lookup key done of
-                      Nothing -> t : go ts (Map.insert key 1 done)
-                      Just _ -> go ts done
-                    where key = _resKey t
-  in graph { _graphResources = sources ++ go targets' mempty }
+  in graph { _graphResources = sources ++ removeDuplicatesWith _resKey targets' }
+
+
+-- | Remove duplicates even if they are not grouped. As opposed to nub
+removeDuplicatesWith :: (Ord k, Eq k, Show a) => (a -> k) -> [a] -> [a]
+removeDuplicatesWith fkey as = go as mempty
+  where
+    go [] _ = []
+    go (t:ts) done = case Map.lookup key done of
+                        Nothing -> t : go ts (Map.insert key 1 done)
+                        Just _ -> go ts done
+                   where key = fkey t

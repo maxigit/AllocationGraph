@@ -34,6 +34,17 @@ spec = do
         isLeft (buildGraph resources [Allocation 25 1 2]) `shouldBe` True
     it "detect resources with same keys" $ do
         isLeft (buildGraph ((a&resName .~ "a'") :resources) allocations) `shouldBe` True
+    context "keeps allocations in the original order" $ do
+      let allocs = [Allocation 15 1 2, Allocation 10 1 4]
+          allocs' = [Allocation 15 a b, Allocation 10 a d]
+          allocsForFirst g = allocsFor g ( head  $ _graphResources g)
+      it "(straight)" $ do
+        let Right graph = buildGraph [a,b,c,d] allocs
+        allocsForFirst graph `shouldBe` allocs'
+      it "(reverse)" $ do
+        let Right graph = buildGraph [a,b,c,d] (reverse allocs)
+        allocsForFirst graph `shouldBe` (reverse allocs')
+
   describe "A graph" $ do
     context "should have the right allocations" $ do
       it "for a source" $ do
@@ -58,10 +69,14 @@ spec = do
          -- C -> D
         let allocs = [Allocation 50 3 4, Allocation 20 1 2]
             Right graph = buildGraph [a,b,c,d] allocs
-        _graphResources (orderTargets graph) `shouldBe` [a,c,d,b]
+        _graphResources (orderTargets graph) `shouldBe` [a,c,b,d]
       it "rearranges target in allocation order" $ do
          -- A -> D
          -- + -> B
+        let a = Resource "a" 1 Source 100
+            b = Resource "b" 2 Target 20
+            c = Resource "c" 3 Source  50
+            d = Resource "d" 4 Target 70
         let allocs = [Allocation 70 1 4, Allocation 20 1 2]
             Right graph = buildGraph [a,b,c,d] allocs
         _graphResources (orderTargets graph) `shouldBe` [a,c,d,b]
@@ -69,5 +84,13 @@ spec = do
         let allocs = [Allocation 15 1 4]
             Right graph = buildGraph [a,b,c,d] allocs
         _graphResources (orderTargets graph) `shouldBe` [a,c,d,b]
+  describe "remove duplicates" $ do
+    it "keep things in order" $ do
+      let l = [a,b,c,d]
+          l' = reverse l
+      removeDuplicatesWith _resKey l `shouldBe` l
+      removeDuplicatesWith _resKey l' `shouldBe` l'
+    it "removes duplicates" $ do
+      removeDuplicatesWith _resKey [d,b,d] `shouldBe` [d,b]
 
       
