@@ -5,7 +5,7 @@ module AllocationGraph
 )
 where
 
-import BasePrelude
+import BasePrelude hiding((.), id)
 import Control.Lens hiding((&))
 
 import Data.Map (Map)
@@ -77,7 +77,7 @@ orderTargets graph = let
 
 
 -- | Remove duplicates even if they are not grouped. As opposed to nub
-removeDuplicatesWith :: (Ord k, Eq k, Show a) => (a -> k) -> [a] -> [a]
+removeDuplicatesWith :: (Ord k, Eq k) => (a -> k) -> [a] -> [a]
 removeDuplicatesWith fkey as = go as mempty
   where
     go [] _ = []
@@ -85,3 +85,53 @@ removeDuplicatesWith fkey as = go as mempty
                         Nothing -> t : go ts (Map.insert key 1 done)
                         Just _ -> go ts done
                    where key = fkey t
+
+
+
+-- | Compact a graph by grouping resources belonging to the same group as one
+-- All linked allocation are also grouped together.
+-- The group function should return a resource with a key. This key
+-- will be used to group things together. It will then be replaced
+-- by the key of the first resource from the group.
+groupResources :: (Ord k, Eq k, Ord g) => Graph k -> (Resource k -> Either (Resource k) (Resource g)) -> Graph k
+groupResources graph fgroup = let
+  resources = _graphResources graph
+  -- we need a map resource -> group
+  -- Sources and Targets must be in in different groups which is why
+  -- we have to add the resource type in the map key
+  key r = (_resType r, fgroup r)
+  groups = Map.fromListWith (<>) $ [(key r, [r]) | r <- resources ]
+  resources' = removeDuplicatesWith key resources 
+  -- now we need to replace each resource belonging to a group by the group
+  grouped = Map.map (mkGroup. head) groups
+  newResources = map findNewResource resources'
+  findNewResource res = Map.findWithDefault (error "Ouch!") (key res) grouped
+  mkGroup resource = case key resource  of
+                             (_, Left rk) -> rk
+                             k@(_, Right rg) ->  rg & resAmount .~ (sum $ map _resAmount (fromJust $ Map.lookup k groups))
+                                                    & resKey .~ resource ^. resKey
+
+
+  -- group allocation 
+  transformAlloc alloc = alloc & allocSource %~ findNewResource
+                               & allocTarget %~ findNewResource
+  
+
+  in graph & graphResources .~ (map mkGroup resources')
+           & graphAllocations %~ groupAllocations . map transformAlloc
+
+groupAllocations :: Ord k =>  [Allocation k] -> [Allocation k]
+groupAllocations allocs =  let
+  groups = Map.fromListWith  aggregate (zip allocs allocs)
+  aggregate a a' = a & allocAmount +~ (a' ^. allocAmount)
+  replace a = Map.findWithDefault a a groups
+  in removeDuplicatesWith id (map replace allocs)
+                                                    
+                        
+
+-- todo
+--
+-- remove all *connected graphs*
+-- find allocation with not fully allocated resources
+-- | Keep resources related to all the allocations
+-- filterResources :: Ord 

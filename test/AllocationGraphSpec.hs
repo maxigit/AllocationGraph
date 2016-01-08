@@ -2,7 +2,7 @@ module AllocationGraphSpec (main, spec) where
 
 import AllocationGraph
 
-import BasePrelude
+import BasePrelude hiding((.))
 import Control.Lens hiding ((&))
 
 import Test.Hspec
@@ -73,10 +73,6 @@ spec = do
       it "rearranges target in allocation order" $ do
          -- A -> D
          -- + -> B
-        let a = Resource "a" 1 Source 100
-            b = Resource "b" 2 Target 20
-            c = Resource "c" 3 Source  50
-            d = Resource "d" 4 Target 70
         let allocs = [Allocation 70 1 4, Allocation 20 1 2]
             Right graph = buildGraph [a,b,c,d] allocs
         _graphResources (orderTargets graph) `shouldBe` [a,c,d,b]
@@ -92,5 +88,24 @@ spec = do
       removeDuplicatesWith _resKey l' `shouldBe` l'
     it "removes duplicates" $ do
       removeDuplicatesWith _resKey [d,b,d] `shouldBe` [d,b]
+
+  describe "grouping" $ do
+    let allocs = [Allocation 15 1 2
+                 ,Allocation 20 1 4
+                 ]
+        Right graph' = buildGraph [a,b,c,d] allocs
+        graph = groupResources graph'
+                    (\r -> Right $ r & resKey .~ (_resType r))
+
+    it "groups resources" $ do
+      _graphResources graph `shouldBe`
+        [ Resource "A" 1 Source 150
+        , Resource "B" 2 Target 90
+        ]
+    it "groups allocations" $ do
+      let [Allocation amount _ _ ] = _graphAllocations  graph
+      amount `shouldBe` 35
+      
+
 
       

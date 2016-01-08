@@ -49,6 +49,10 @@ data Allocation k = Allocation
   , _allocTarget :: !k
   } deriving (Show, Read, Eq)
 
+instance Ord k => Ord (Allocation k) where
+  compare = (<>) <$> comparing _allocSource  
+                 <*> comparing _allocTarget
+
 makeLenses ''Allocation
 
 -- | Denormalized graph.
