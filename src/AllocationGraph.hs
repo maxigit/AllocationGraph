@@ -65,3 +65,17 @@ filterAllocations resources allocs = let
   findAs alloc field = isJust $ Map.lookup (field alloc) resourceMap
   ok alloc = and $ map (findAs alloc) [_allocSource, _allocTarget]
   in filter ok allocs
+
+-- | Reorder target so that they are in the same order
+-- as the source. This should minimize arrows crossing.
+orderTargets graph = let
+  (sources, targets) = partition isSource (_graphResources graph)
+  targets'  = concatMap (\s -> map _allocTarget (allocsFor graph s)) sources ++ targets
+  -- we need then to remove duplicates but still keeping the initial order
+  -- we add targets again to put add the end all the target which don't have allocations
+  go [] _ = []
+  go (t:ts) done = case Map.lookup key done of
+                      Nothing -> t : go ts (Map.insert key 1 done)
+                      Just _ -> go ts done
+                    where key = _resKey t
+  in graph { _graphResources = sources ++ go targets' mempty }

@@ -17,6 +17,8 @@ main = hspec spec
 a,b :: Resource Int
 a = Resource "A" 1 Source 100
 b = Resource "B" 2 Target 20
+c = Resource "C" 3 Source  50
+d = Resource "D" 4 Target 70
 resources = [a,b]
 allocations = [Allocation  15 1 2]
 Right graph = buildGraph resources allocations
@@ -43,3 +45,29 @@ spec = do
         unallocated graph a `shouldBe` 85
       it "for a target" $ do
         unallocated graph b `shouldBe` 5
+  describe "Modifying graph" $ do
+    context "sorting target by source" $ do
+      it "rearranges target in source order (reverse)" $ do
+         -- A -> D
+         -- C -> B
+        let allocs = [Allocation 15 1 4] -- [Allocation 70 1 4, Allocation 20 3 2]
+            Right graph = buildGraph [a,b,c,d] allocs
+        _graphResources (orderTargets graph) `shouldBe` [a,c,d,b]
+      it "rearranges target in source order (straight)" $ do
+         -- A -> B
+         -- C -> D
+        let allocs = [Allocation 50 3 4, Allocation 20 1 2]
+            Right graph = buildGraph [a,b,c,d] allocs
+        _graphResources (orderTargets graph) `shouldBe` [a,c,d,b]
+      it "rearranges target in allocation order" $ do
+         -- A -> D
+         -- + -> B
+        let allocs = [Allocation 70 1 4, Allocation 20 1 2]
+            Right graph = buildGraph [a,b,c,d] allocs
+        _graphResources (orderTargets graph) `shouldBe` [a,c,d,b]
+      it "puts unusued target at the end" $ do
+        let allocs = [Allocation 15 1 4]
+            Right graph = buildGraph [a,b,c,d] allocs
+        _graphResources (orderTargets graph) `shouldBe` [a,c,d,b]
+
+      
