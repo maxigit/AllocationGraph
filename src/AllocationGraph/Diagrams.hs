@@ -25,7 +25,7 @@ data RenderParameter k = RenderParameter
                    --           ^                  allocation amount
                    --                     ^        display size
   , paramSep :: Double
-  , paramSourceColour :: Resource k -> D.Colour Double
+  , paramAllocColour :: Allocation (Resource k) -> D.Colour Double
   }
 
 defaultRenderParameters = RenderParameter (50) (const (*5)) 10 (const green)
@@ -97,7 +97,9 @@ allocBox param resource alloc = label  <> rect w h # bg colour # named (nameAllo
         label = renderLabel param (printf "%.2f" (abs (_allocAmount alloc)))
         amount = abs $ _resAmount resource
         rType = _resType resource
-        colour = paramSourceColour param (_allocSource alloc)
+        colour = paramAllocColour param alloc
+
+
 
 
 -- | Give a unique name to the edge of an allocation.
@@ -109,8 +111,12 @@ nameAllocBox t al = show t ++ key (_allocSource al) ++ "-" ++ key (_allocTarget 
 
 
 joinAllocBox :: Show k => RenderParameter k -> Diag -> Allocation (Resource k) -> Diag
-joinAllocBox param diag alloc = diag # connect' (with & shaftStyle  %~ lwL 1
+joinAllocBox param diag alloc = diag # connect' (with & shaftStyle  %~ lwL w
                                                       & lengths .~ 1
+                                                      & shaftStyle %~ lc c
                                                 )
                                                 (nameAllocBox Source alloc)
                                                (nameAllocBox Target alloc)
+  where
+    w = paramBoxHeight param (_resAmount $ _allocSource alloc) (abs $ _allocAmount alloc)
+    c = paramAllocColour param alloc

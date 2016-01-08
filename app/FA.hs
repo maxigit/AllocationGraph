@@ -24,19 +24,19 @@ main = do
   credentials <- read <$> readFile "credentials.cfg"
   conn <- SQL.connect credentials
   (resources, allocations) <- loadAllocations conn supplier_id
-  let param = RenderParameter width height width sourceColour
-      diag = renderAllocation param _resType graph
+  let param = RenderParameter width height width allocColour
+      diag = renderAllocation param _resType (orderTargets graph)
       Right graph = buildGraph resources allocations
       width = 10
       height res box = width * log' where
-             log' = logBase 5 (abs box + 1)
+             log' = max 1 (logBase 5 (abs box + 1))
 
       -- We want to give a different colour for each source in 
       -- order they are displayed. For that we build a Map
-      sources = filter isSource resources
-      colours = cycle $ K.brewerSet K.Set2 8
-      resourceToColour = Map.fromList $ zip sources colours
-      sourceColour res = fromJust $ Map.lookup res resourceToColour
+      targets = filter isTarget resources
+      colours = cycle $ K.brewerSet K.BrBG 11 --  >-K.Set2 8
+      resourceToColour = Map.fromList $ zip targets colours
+      allocColour alloc = fromJust $ Map.lookup (_allocTarget alloc) resourceToColour
   withArgs args $ mainWith diag
 
 
@@ -72,6 +72,7 @@ loadAllocations conn supp = do
         , ") AND (" 
         , whereC "to_." 
         , ")"
+        , " ORDER by to_.tran_date, to_.trans_no " 
         ]
 
   print allocQuery
