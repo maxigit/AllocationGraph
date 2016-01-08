@@ -100,7 +100,7 @@ groupResources graph fgroup = let
   -- Sources and Targets must be in in different groups which is why
   -- we have to add the resource type in the map key
   key r = (_resType r, fgroup r)
-  groups = Map.fromListWith (<>) $ [(key r, [r]) | r <- resources ]
+  groups = Map.fromListWith (flip (<>)) $ [(key r, [r]) | r <- resources ]
   resources' = removeDuplicatesWith key resources 
   -- now we need to replace each resource belonging to a group by the group
   grouped = Map.map (mkGroup. head) groups
@@ -113,14 +113,17 @@ groupResources graph fgroup = let
 
 
   -- group allocation 
-  transformAlloc alloc = alloc & allocSource %~ findNewResource
-                               & allocTarget %~ findNewResource
+  transformAlloc (Allocation amt src tgt) =
+    Allocation amt (_resKey (findNewResource src))
+                      (_resKey (findNewResource tgt))
   
 
-  in graph & graphResources .~ (map mkGroup resources')
-           & graphAllocations %~ groupAllocations . map transformAlloc
+  Right newGraph = buildGraph (map mkGroup resources')
+             (groupAllocations $ map transformAlloc
+                                     (_graphAllocations graph))
+  in newGraph
 
-groupAllocations :: Ord k =>  [Allocation k] -> [Allocation k]
+-- groupAllocations :: Ord k =>  [Allocation k] -> [Allocation k]
 groupAllocations allocs =  let
   groups = Map.fromListWith  aggregate (zip allocs allocs)
   aggregate a a' = a & allocAmount +~ (a' ^. allocAmount)
