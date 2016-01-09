@@ -46,6 +46,7 @@ executable FA
                      , palette
                      , lens
                      , time
+                     , optparse-applicative
   default-language:    Haskell2010
 
 test-suite AllocationGraph-test
