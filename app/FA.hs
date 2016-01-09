@@ -21,6 +21,9 @@ import Options.Applicative (Parser, strOption, long, short, metavar
                            , option, auto)
 
 data ScaleMode = Log | Linear deriving (Read, Show )
+data OrderMode = ReorderTarget | OriginalOrder 
+  deriving (Show, Read)
+
 data Options = Options
   { opFACredential :: !(String) -- ^ database credentials. Read format
   , opScaleMode :: ScaleMode
@@ -29,12 +32,12 @@ data Options = Options
   , opAfter :: Maybe Day
   , opGroupPeriod :: Maybe Period
   , opEntity :: Int
+  , opOrderMode :: OrderMode
   , opArgs :: [String]
   }
   
 data Period = Week | Month Int | Quarter Int Int | Year Int Int
      deriving (Show, Read) 
-
 
 optionParser :: Parser Options
 optionParser = pure Options
@@ -73,6 +76,11 @@ optionParser = pure Options
                    <> metavar "ENTITY ID"
                    <> help "entity id"
                    )
+  <*>  flag ReorderTarget OriginalOrder
+            ( long "order_mode"
+            <> short 't'
+            )
+              
   <*> many (OP.argument OP.str (metavar "DIAGRAMS OPTIONS ..."))
 
 readDate :: String -> Day
@@ -106,7 +114,12 @@ main = do
   credentials <- read <$> readFile (opFACredential options)
   conn <- SQL.connect credentials
   (resources, allocations) <- loadAllocations conn (opEntity options)
-  let diag = renderAllocation param _resType (orderTargets graph)
+  let diag = renderAllocation param
+                              _resType
+                              (case opOrderMode options of 
+                                ReorderTarget -> orderTargets graph
+                                _ -> graph
+                              )
       Right graph' = buildGraph resources allocations
       graph = groupResources graph' (groupFunction options)
       param = RenderParameter width (height (opScaleMode options)) width allocColour

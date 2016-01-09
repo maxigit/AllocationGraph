@@ -66,7 +66,7 @@ renderResource param graph resource = hcat (revIf rType (map alignT [tag , alloc
   where
     rType = _resType resource
     tag = label <> rect (w*20) h  # lwL 1 # bg tagColor
-    tagColor = if abs ua < 1 then wheat else pink
+    tagColor = if abs ua < 1 then lightgray else pink
     labelString = printf "%s -- %.2f" (_resName resource) amount
     label = renderTag param labelString
     amount = abs (_resAmount resource)
