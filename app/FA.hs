@@ -159,6 +159,7 @@ loadAllocations conn supp = do
         , ") AND (" 
         , whereC "to_." 
         , ")"
+        , " AND abs(amt) >1e-2 "
         , " ORDER by from_.tran_date, from_.trans_no " 
         ]
 

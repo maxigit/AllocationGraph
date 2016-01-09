@@ -65,7 +65,8 @@ renderResource :: (Ord k, Show k)
 renderResource param graph resource = hcat (revIf rType (map alignT [tag , allocs]))
   where
     rType = _resType resource
-    tag = label <> rect (w*20) h  # lwL 1
+    tag = label <> rect (w*20) h  # lwL 1 # bg tagColor
+    tagColor = if abs ua < 1 then wheat else pink
     labelString = printf "%s -- %.2f" (_resName resource) amount
     label = renderTag param labelString
     amount = abs (_resAmount resource)
@@ -81,7 +82,7 @@ renderResource param graph resource = hcat (revIf rType (map alignT [tag , alloc
     revIf Target l = reverse l
     allocBoxes = vcat (map (allocBox param resource) (allocsFor graph resource))  
     ua = abs (unallocated graph resource)
-    unallocatedBox = if  ua == 0 then mempty
+    unallocatedBox = if  abs ua < 1 then mempty
                                  else renderLabel param (printf "%.2f" ua)
                                       <> rect w (paramBoxHeight param amount ua) # bg red #lwL 1
 
