@@ -271,13 +271,26 @@ groupByPeriod res period  =
         let (year, month, day) = toGregorian date
             days = fromInteger $ diffDays date (fromGregorian year 01 01)
             week = days `div` 7
-            quarter = month `div` 3
         in case period of
                 Week -> WeekKey year week
-                Month _ -> MonthKey year month
-                Quarter _ _  -> QuarterKey year quarter
-                Year _ _ ->  YearKey year
+                Month day1 -> let (y,m,_) = normalizeDate year month (day-day1)
+                             in MonthKey y m
+                Quarter month1 day1  ->  let (y,m,_) = normalizeDate year (month-month1) (day-day1)
+                                         in QuarterKey y (1+(m `div` 3))
+                Year month1 day1  ->  let (y,m,_) = normalizeDate year (month-month1) (day-day1)
+                                      in YearKey y 
 
+
+normalizeDate year month day = 
+  adjustMonth $ adjustDay (year,month, day)
+  where
+    adjustDay (y,m,d) = if d <0
+                           then (y,m-1,0)
+                           else (y,m,d)
+    adjustMonth (y,m,d) = if m<0
+                             then (y-1,12+m,d)
+                             else (y,m,d)
+                            
                 
 periodKeyToName :: PeriodKey -> String
 periodKeyToName Before = "BEFORE"
