@@ -8,31 +8,28 @@ import AllocationGraph.Diagrams
 import Diagrams.Backend.SVG.CmdLine (mainWith)
 
 import Database.MySQL.Simple as SQL
-import Database.MySQL.Simple.QueryResults
 
-import Data.String
 import qualified Data.Map as Map
-import qualified Data.Map (Map)
+import Data.Map (Map)
 
 import qualified Data.Colour.Palette.BrewerSet as K
 import Data.Time
-import Data.Time.Format
 
 import qualified Options.Applicative as OP
 import Options.Applicative (Parser, strOption, long, short, metavar
-                           , help, switch, value, flag
+                           , help, value, flag
                            , option, auto)
 
 data ScaleMode = Log | Linear deriving (Read, Show )
 data Options = Options
-  { faCredential :: !(String) -- ^ database credentials. Read format
-  , scaleMode :: ScaleMode
-  , sep :: Double
-  , before :: Maybe Day
-  , after :: Maybe Day
-  , groupPeriod :: Maybe Period
-  , entity :: Int
-  , args :: [String]
+  { opFACredential :: !(String) -- ^ database credentials. Read format
+  , opScaleMode :: ScaleMode
+  , opSep :: Double
+  , opBefore :: Maybe Day
+  , opAfter :: Maybe Day
+  , opGroupPeriod :: Maybe Period
+  , opEntity :: Int
+  , opArgs :: [String]
   }
   
 data Period = Week | Month Int | Quarter Int Int | Year Int Int
@@ -90,9 +87,11 @@ readDate str = let
 
 readPeriod :: String -> Period
 readPeriod s = read s 
+getDate :: Resource k e -> String
 getDate resource = let
   n = _resName resource
   in drop (length n - 10) n
+groupByYear :: ResourceFA -> Either ResourceFA (Resource String Extra)
 groupByYear res = let d = take 8 (getDate res)
                   in  Right $ res & resKey .~ d
                                   & resName .~ d
@@ -104,17 +103,17 @@ getOptions = OP.execParser opts where
 main :: IO()
 main = do 
   options <- getOptions
-  credentials <- read <$> readFile (faCredential options)
+  credentials <- read <$> readFile (opFACredential options)
   conn <- SQL.connect credentials
-  (resources, allocations) <- loadAllocations conn (entity options)
+  (resources, allocations) <- loadAllocations conn (opEntity options)
   let diag = renderAllocation param _resType (orderTargets graph)
       Right graph' = buildGraph resources allocations
       graph = groupResources graph' (groupFunction options)
-      param = RenderParameter width (height (scaleMode options)) width allocColour
+      param = RenderParameter width (height (opScaleMode options)) width allocColour
       width = 10
-      height Log res box = width * log' where
+      height Log _ box = width * log' where
              log' = max 1 (logBase 5 (abs box + 1))
-      height Linear res box = box /10
+      height Linear _ box = box /10
 
       -- We want to give a different colour for each source in 
       -- order they are displayed. For that we build a Map
@@ -122,9 +121,10 @@ main = do
       colours = cycle $ K.brewerSet K.BrBG 11 --  K.Set2 8
       resourceToColour = Map.fromList $ zip targets colours
       allocColour alloc = fromJust $ Map.lookup (_allocTarget alloc) resourceToColour
-  withArgs (args options) $ mainWith diag
+  withArgs (opArgs options) $ mainWith diag
 
 
+supplierInvoice, supplierCredit, supplierPayment, supplierDeposit :: Int
 supplierInvoice = 20
 supplierCredit = 21
 supplierPayment = 22
@@ -164,7 +164,7 @@ loadAllocations conn supp = do
 
   print allocQuery
   rows' <- SQL.query_ conn allocQuery
-  let types = rows' :: [(Int, Int, Int, Int, Double)]
+  -- let types = rows' :: [(Int, Int, Int, Int, Double)]
 
   let allocs = map toAlloc rows'
   mapM_ print allocs
@@ -188,6 +188,7 @@ loadAllocations conn supp = do
         showType 21 = "Credit"
         showType 20 = "Invoice"
         showType 25 = "Deposit"
+        showType i = error "TransType [" ++ show i ++ "] not known."
 
         toAlloc (no_from, type_from, no_to, type_to, amount) =
                 Allocation amount (no_from, type_from) (no_to, type_to)
@@ -204,23 +205,23 @@ groupFunction opt res = case groupsM of
                              (g:_) -> Right g
   where
     groupsM = catMaybes
-      [ before opt >>= groupBeforeStart  res
-      , after opt >>= groupBeforeEnd res
-      , groupPeriod opt >>= groupByPeriod res
+      [ opBefore opt >>= groupBeforeStart  res
+      , opAfter opt >>= groupBeforeEnd res
+      , opGroupPeriod opt >>= groupByPeriod res
       ]
 
-data PeriodKey = Start
+data PeriodKey = Before
                | WeekKey Integer Int
                | MonthKey Integer Int
                | QuarterKey Integer Int
                | YearKey Integer
-               | End deriving(Show, Read, Ord, Eq)
+               | After deriving(Show, Read, Ord, Eq)
 
 groupBeforeStart :: ResourceFA -> Day -> Maybe (Resource PeriodKey Extra)
 groupBeforeStart res before =  do
   guard (res ^. resExtra <= before)
   return ( Resource ( "<= " ++ formatDate before ) 
-                     Start
+                     Before
                      (_resType res)
                      0
                      (res ^. resExtra)
@@ -229,7 +230,7 @@ groupBeforeEnd :: ResourceFA -> Day -> Maybe (Resource PeriodKey Extra)
 groupBeforeEnd res after =  do
   guard (res ^. resExtra >= after)
   return ( Resource ( ">= " ++ formatDate after ) 
-                     End
+                     After
                      (_resType res)
                      0
   
@@ -241,8 +242,8 @@ groupByPeriod res period  =
   Just $ res & resKey .~ periodKey
              & resName .~ periodKeyToName periodKey
   where
-    periodKey = groupDate period ( _resExtra res)
-    groupDate period date =
+    periodKey = groupDate ( _resExtra res)
+    groupDate date =
         let (year, month, day) = toGregorian date
             days = fromInteger $ diffDays date (fromGregorian year 01 01)
             week = days `div` 7
@@ -255,8 +256,10 @@ groupByPeriod res period  =
 
                 
 periodKeyToName :: PeriodKey -> String
+periodKeyToName Before = "BEFORE"
 periodKeyToName (WeekKey y w) = printf "%04d-W%02d" y w
 periodKeyToName (MonthKey y m) = printf "%04d-%02d" y m
-period (QuarterKey y q) = printf "%04d-Q%1d" y q
-period (YearKey y ) = printf "%04d-%04d" y (y+1)
+periodKeyToName (QuarterKey y q) = printf "%04d-Q%1d" y q
+periodKeyToName (YearKey y ) = printf "%04d-%04d" y (y+1)
+periodKeyToName After = "AFTER"
   
