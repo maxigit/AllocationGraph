@@ -26,9 +26,10 @@ data RenderParameter k e = RenderParameter
                    --                     ^        display size
   , paramSep :: Double
   , paramAllocColour :: Allocation (Resource k e) -> D.Colour Double
+  , paramAllocWidth :: Allocation (Resource k e) -> Double
   }
 
-defaultRenderParameters = RenderParameter (50) (const (*5)) 10 (const green)
+defaultRenderParameters = RenderParameter (50) (const (*5)) 10 (const green) (const 3)
 -- | Generate a allocation graph using diagrams.
 -- Resources are vertical displayed in columns
 renderAllocation :: (Ord k, Show k, Ord g)
@@ -122,5 +123,6 @@ joinAllocBox param diag alloc = diag # connect' (with & shaftStyle  %~ lwL w
                                                 (nameAllocBox Source alloc)
                                                (nameAllocBox Target alloc)
   where
-    w = max 1  (1 * paramBoxHeight param (_resAmount $ _allocSource alloc) (abs $ _allocAmount alloc))
+    -- w = max 1  (1 * paramBoxHeight param (_resAmount $ _allocSource alloc) (abs $ _allocAmount alloc))
+    w = paramAllocWidth param alloc
     c = paramAllocColour param alloc

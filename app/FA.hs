@@ -21,8 +21,8 @@ import Options.Applicative (Parser, strOption, long, short, metavar
                            , option, auto)
 
 data ScaleMode = Log | Linear deriving (Read, Show )
-data OrderMode = ReorderTarget | OriginalOrder 
-  deriving (Show, Read)
+data OrderMode = ReorderTarget | OriginalOrder deriving (Show, Read)
+data AllocWidthMode = ABoxHeight | AConst deriving (Show, Read)
 
 data Options = Options
   { opFACredential :: !(String) -- ^ database credentials. Read format
@@ -33,6 +33,7 @@ data Options = Options
   , opGroupPeriod :: Maybe Period
   , opEntity :: Int
   , opOrderMode :: OrderMode
+  , opAllocWidthMode :: AllocWidthMode
   , opArgs :: [String]
   }
   
@@ -80,6 +81,10 @@ optionParser = pure Options
             ( long "order_mode"
             <> short 't'
             )
+  <*> flag ABoxHeight AConst
+           ( long "alloc_width_mode"
+           <> short 'w'
+           )
               
   <*> many (OP.argument OP.str (metavar "DIAGRAMS OPTIONS ..."))
 
@@ -122,11 +127,16 @@ main = do
                               )
       Right graph' = buildGraph resources allocations
       graph = groupResources graph' (groupFunction options)
-      param = RenderParameter width (height (opScaleMode options)) width allocColour
+      param = RenderParameter width height width allocColour allocWidth
       width = 10
-      height Log _ box = width * log' where
+      height' Log _ box = width * log' where
              log' = max 1 (logBase 5 (abs box + 1))
-      height Linear _ box = box /10
+      height' Linear _ box = box /10
+      height = height'(opScaleMode options)
+      allocWidth = case opAllocWidthMode options of
+                        ABoxHeight -> \a -> height (_allocAmount a)
+                                                   (_allocAmount a)
+                        _ -> const width
 
       -- We want to give a different colour for each source in 
       -- order they are displayed. For that we build a Map
