@@ -1,7 +1,7 @@
 
 
-{-# LANGUAGE OverloadedStrings #-}
-import BasePrelude hiding((&))
+{-# LANGUAGE OverloadedStrings, PartialTypeSignatures #-}
+import BasePrelude hiding((&),(.),id)
 import Control.Lens
 import AllocationGraph
 import AllocationGraph.Diagrams
@@ -28,9 +28,9 @@ data Options = Options
   { faCredential :: !(String) -- ^ database credentials. Read format
   , scaleMode :: ScaleMode
   , sep :: Double
-  , start :: Maybe Day
-  , end :: Maybe Day
-  , groupBy :: Maybe Period
+  , before :: Maybe Day
+  , after :: Maybe Day
+  , groupPeriod :: Maybe Period
   , entity :: Int
   , args :: [String]
   }
@@ -51,19 +51,20 @@ optionParser = pure Options
                    <> short 'l'
              )
   <*>  option auto ( long "separator_width"
+                    <> short 's'
                     <> metavar "SEP WIDTH"
                     <> help "Separator witdth"
                     <> value 0
                     )
-  <*>  optional (fmap readDate $ strOption (long "start_date"
-                             <> short 's'
+  <*>  optional (fmap readDate $ strOption (long "before_date"
+                             <> short 'b'
                              <> metavar "DATE"
-                             <> help "Start date"
+                             <> help "Before date"
        ))
-  <*>  optional (fmap readDate $ strOption (long "end_date"
-                             <> short 's'
+  <*>  optional (fmap readDate $ strOption (long "after_date"
+                             <> short 'a'
                              <> metavar "DATE"
-                             <> help "End date"
+                             <> help "After date"
        ))
   <*> optional (fmap readPeriod $ strOption (long "group_period"
                                     <> short 'p'
@@ -108,7 +109,7 @@ main = do
   (resources, allocations) <- loadAllocations conn (entity options)
   let diag = renderAllocation param _resType (orderTargets graph)
       Right graph' = buildGraph resources allocations
-      graph = groupResources graph' groupByYear 
+      graph = groupResources graph' (groupFunction options)
       param = RenderParameter width (height (scaleMode options)) width allocColour
       width = 10
       height Log res box = width * log' where
@@ -193,3 +194,69 @@ loadAllocations conn supp = do
 
 formatDate :: Day -> String
 formatDate = show --  formatTime defaultTimeLocale "%Y/%m/%d"
+
+
+groupFunction :: Options
+              -> ResourceFA
+              -> (Either ResourceFA (Resource PeriodKey Extra))
+groupFunction opt res = case groupsM of
+                             [] -> Left res
+                             (g:_) -> Right g
+  where
+    groupsM = catMaybes
+      [ before opt >>= groupBeforeStart  res
+      , after opt >>= groupBeforeEnd res
+      , groupPeriod opt >>= groupByPeriod res
+      ]
+
+data PeriodKey = Start
+               | WeekKey Integer Int
+               | MonthKey Integer Int
+               | QuarterKey Integer Int
+               | YearKey Integer
+               | End deriving(Show, Read, Ord, Eq)
+
+groupBeforeStart :: ResourceFA -> Day -> Maybe (Resource PeriodKey Extra)
+groupBeforeStart res before =  do
+  guard (res ^. resExtra <= before)
+  return ( Resource ( "<= " ++ formatDate before ) 
+                     Start
+                     (_resType res)
+                     0
+                     (res ^. resExtra)
+          )
+groupBeforeEnd :: ResourceFA -> Day -> Maybe (Resource PeriodKey Extra)
+groupBeforeEnd res after =  do
+  guard (res ^. resExtra >= after)
+  return ( Resource ( ">= " ++ formatDate after ) 
+                     End
+                     (_resType res)
+                     0
+  
+                     (res ^. resExtra)
+          )
+
+groupByPeriod :: ResourceFA -> Period -> Maybe (Resource PeriodKey Extra)
+groupByPeriod res period  =
+  Just $ res & resKey .~ periodKey
+             & resName .~ periodKeyToName periodKey
+  where
+    periodKey = groupDate period ( _resExtra res)
+    groupDate period date =
+        let (year, month, day) = toGregorian date
+            days = fromInteger $ diffDays date (fromGregorian year 01 01)
+            week = days `div` 7
+            quarter = month `div` 3
+        in case period of
+                Week -> WeekKey year week
+                Month _ -> MonthKey year month
+                Quarter _ _  -> QuarterKey year quarter
+                Year _ _ ->  YearKey year
+
+                
+periodKeyToName :: PeriodKey -> String
+periodKeyToName (WeekKey y w) = printf "%04d-W%02d" y w
+periodKeyToName (MonthKey y m) = printf "%04d-%02d" y m
+period (QuarterKey y q) = printf "%04d-Q%1d" y q
+period (YearKey y ) = printf "%04d-%04d" y (y+1)
+  
