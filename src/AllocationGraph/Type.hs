@@ -25,20 +25,23 @@ _isTarget Source = False
 _isTarget _ = True
 
 type ResourceKey = Int
-data Resource k = Resource 
+data Resource k e = Resource 
   { _resName :: !String
-  , _resKey :: k
-  , _resType :: ResourceType
+  , _resKey :: !k
+  , _resType :: !ResourceType
   , _resAmount :: !Double
-  } deriving (Show, Read, Eq)
+  , _resExtra :: !e
+  } deriving (Show, Read)
 
 makeLenses ''Resource
 
-isSource, isTarget :: Resource k -> Bool
+isSource, isTarget :: Resource k e -> Bool
 isSource = _isSource . _resType
 isTarget = _isTarget . _resType
 
-instance Ord k => Ord (Resource k) where
+instance Eq k => Eq (Resource k e) where
+  (==) a b =  _resKey a == _resKey b
+instance Ord k => Ord (Resource k e) where
   compare a b = compare (_resKey a) (_resKey b)
 
 -- | Allocation. k is the type of resource
@@ -57,15 +60,15 @@ makeLenses ''Allocation
 
 -- | Denormalized graph.
 -- Should be build once but not updated.
-data Graph k = Graph 
-  { _graphAllocations :: [Allocation (Resource k)]
-  , _graphResources :: [Resource k] -- to keep initial order
-  , _graphResourceMap :: Map (Resource k) [Allocation (Resource k)]
+data Graph k e = Graph 
+  { _graphAllocations :: [Allocation (Resource k e)]
+  , _graphResources :: [Resource k e] -- to keep initial order
+  , _graphResourceMap :: Map (Resource k e) [Allocation (Resource k e)]
   } deriving (Show, Read, Eq)
 
 makeLenses ''Graph
 
-_graphSources, _graphTargets :: Graph k -> [Resource k]
+_graphSources, _graphTargets :: Graph k e -> [Resource k e]
 _graphSources graph = filter isSource (_graphResources graph)
 _graphTargets graph = filter isTarget (_graphResources graph)
 

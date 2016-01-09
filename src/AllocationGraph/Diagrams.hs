@@ -18,23 +18,23 @@ import AllocationGraph
 
 type Diag = Diagram B
 
-data RenderParameter k = RenderParameter 
+data RenderParameter k e = RenderParameter 
   { paramWidth :: Double 
   , paramBoxHeight :: Double -> Double -> Double
                    -- ^                            resource amount
                    --           ^                  allocation amount
                    --                     ^        display size
   , paramSep :: Double
-  , paramAllocColour :: Allocation (Resource k) -> D.Colour Double
+  , paramAllocColour :: Allocation (Resource k e) -> D.Colour Double
   }
 
 defaultRenderParameters = RenderParameter (50) (const (*5)) 10 (const green)
 -- | Generate a allocation graph using diagrams.
 -- Resources are vertical displayed in columns
 renderAllocation :: (Ord k, Show k, Ord g)
-                        => RenderParameter k
-                        -> (Resource k -> g)      -- ^ function to group resource
-                        -> Graph k      -- ^ the graph to render
+                        => RenderParameter k e
+                        -> (Resource k e -> g)      -- ^ function to group resource
+                        -> Graph k e      -- ^ the graph to render
                         -> Diag
 
 
@@ -49,15 +49,18 @@ renderAllocation param group graph = let
 
 
 -- | Render a group of resources in a column
-renderColumn :: (Ord k, Show k) => RenderParameter k -> Graph k -> [Resource k ] -> Diag
+renderColumn :: (Ord k, Show k) => RenderParameter k e -> Graph k e -> [Resource k e ] -> Diag
 renderColumn param graph resources = vsep (paramSep param) $ map (renderResource param graph) resources
 
 
 -- | Render a Resource as box with a split for each allocation
+--
+--
+--
 renderResource :: (Ord k, Show k)
-               => RenderParameter k
-               -> Graph k
-               -> Resource k
+               => RenderParameter k e
+               -> Graph k e
+               -> Resource k e
                -> Diag
 renderResource param graph resource = hcat (revIf rType (map alignT [tag , allocs]))
   where
@@ -82,14 +85,14 @@ renderResource param graph resource = hcat (revIf rType (map alignT [tag , alloc
                                  else renderLabel param (printf "%.2f" ua)
                                       <> rect w (paramBoxHeight param amount ua) # bg red #lwL 1
 
-renderLabel, renderTag :: RenderParameter k -> String -> Diag
+renderLabel, renderTag :: RenderParameter k e -> String -> Diag
 renderLabel param s = text s # rotateBy (1/4) # fontSize (local ((paramWidth param)/4))
 renderTag param s = text s # fontSize (local ((paramWidth param)/1))
 
 allocBox :: (Ord k, Show k)
-         => RenderParameter k
-         -> Resource k
-         -> Allocation (Resource k)
+         => RenderParameter k e
+         -> Resource k e
+         -> Allocation (Resource k e)
          -> Diag
 allocBox param resource alloc = label  <> rect w h # bg colour # named (nameAllocBox rType alloc) # lwL 1
   where w = paramWidth param
@@ -104,13 +107,13 @@ allocBox param resource alloc = label  <> rect w h # bg colour # named (nameAllo
 
 -- | Give a unique name to the edge of an allocation.
 -- This name will be used to draw arrows between boxes.
-nameAllocBox :: Show k => ResourceType -> Allocation (Resource k) -> String
+nameAllocBox :: Show k => ResourceType -> Allocation (Resource k e) -> String
 nameAllocBox t al = show t ++ key (_allocSource al) ++ "-" ++ key (_allocTarget al)
   where
     key resource = show ( _resKey  resource)
 
 
-joinAllocBox :: Show k => RenderParameter k -> Diag -> Allocation (Resource k) -> Diag
+joinAllocBox :: Show k => RenderParameter k e -> Diag -> Allocation (Resource k e) -> Diag
 joinAllocBox param diag alloc = diag # connect' (with & shaftStyle  %~ lwL w
                                                       & lengths .~ 1
                                                       & shaftStyle %~ lc c
@@ -118,5 +121,5 @@ joinAllocBox param diag alloc = diag # connect' (with & shaftStyle  %~ lwL w
                                                 (nameAllocBox Source alloc)
                                                (nameAllocBox Target alloc)
   where
-    w = paramBoxHeight param (_resAmount $ _allocSource alloc) (abs $ _allocAmount alloc)
+    w = max 1  (1 * paramBoxHeight param (_resAmount $ _allocSource alloc) (abs $ _allocAmount alloc))
     c = paramAllocColour param alloc

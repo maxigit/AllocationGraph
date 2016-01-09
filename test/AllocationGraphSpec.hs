@@ -14,11 +14,11 @@ import Test.QuickCheck
 main :: IO ()
 main = hspec spec
 
-a,b :: Resource Int
-a = Resource "A" 1 Source 100
-b = Resource "B" 2 Target 20
-c = Resource "C" 3 Source  50
-d = Resource "D" 4 Target 70
+a,b :: Resource Int ()
+a = Resource "A" 1 Source 100 ()
+b = Resource "B" 2 Target 20  ()
+c = Resource "C" 3 Source 50  ()
+d = Resource "D" 4 Target 70  ()
 resources = [a,b]
 allocations = [Allocation  15 1 2]
 Right graph = buildGraph resources allocations
@@ -99,8 +99,8 @@ spec = do
 
     it "groups resources" $ do
       _graphResources graph `shouldBe`
-        [ Resource "A" 1 Source 150
-        , Resource "B" 2 Target 90
+        [ Resource "A" 1 Source 150 ()
+        , Resource "B" 2 Target 90  ()
         ]
     it "groups allocations" $ do
       let [Allocation amount _ _ ] = _graphAllocations  graph

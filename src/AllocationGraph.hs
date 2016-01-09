@@ -16,12 +16,12 @@ import AllocationGraph.Type
 -- | Build a graph . Return an error
 -- if referece are not found or allocation are not the wrong way
 -- (allocating to a source or from a target)
-buildGraph :: Ord k =>  [Resource k]  -- ^ all the resources
+buildGraph :: Ord k =>  [Resource k e]  -- ^ all the resources
                     -> [Allocation k] -- ^ allocations referencing the resources
-                    -> Either String (Graph k)
+                    -> Either String (Graph k e)
 
 buildGraph resources allocs = 
-  let -- resourceMap :: Map k (Resource k)
+  let -- resourceMap :: Map k (Resource k e)
       resourceMap = Map.fromList $ zip (map _resKey resources) resources
 
       allocations = forM allocs $ \al -> do
@@ -45,21 +45,21 @@ buildGraph resources allocs =
                                         resources
                                         (groupAllocByResource _allocSource als)
 
-allocated:: Ord k => Graph k -> Resource k -> Double
+allocated:: Ord k => Graph k e -> Resource k e -> Double
 allocated graph res = let allocs = allocsFor graph res
   in sum (map _allocAmount allocs)
 
-unallocated :: Ord k => Graph k -> Resource k -> Double
+unallocated :: Ord k => Graph k e -> Resource k e -> Double
 unallocated graph res = abs (_resAmount res) - abs ( allocated graph res)
 
 
-allocsFor :: Ord k => Graph k -> Resource k -> [Allocation (Resource k)]
+allocsFor :: Ord k => Graph k e -> Resource k e -> [Allocation (Resource k e)]
 allocsFor graph resource = fromMaybe [] $ Map.lookup resource (_graphResourceMap graph)
 
 
 -- | Keep allocations only related to the given resources 
 -- both side of the allocation needs to be present so we can draw it properly
-filterAllocations :: Ord k =>  [Resource k] -> [Allocation k] -> [Allocation k]
+filterAllocations :: Ord k =>  [Resource k e] -> [Allocation k] -> [Allocation k]
 filterAllocations resources allocs = let
   resourceMap = Map.fromList $ zip (map _resKey resources) [1..] -- we shoudl use a set
   findAs alloc field = isJust $ Map.lookup (field alloc) resourceMap
@@ -93,7 +93,7 @@ removeDuplicatesWith fkey as = go as mempty
 -- The group function should return a resource with a key. This key
 -- will be used to group things together. It will then be replaced
 -- by the key of the first resource from the group.
-groupResources :: (Ord k, Eq k, Ord g) => Graph k -> (Resource k -> Either (Resource k) (Resource g)) -> Graph k
+groupResources :: (Ord k, Eq k, Ord g) => Graph k e -> (Resource k e -> Either (Resource k e) (Resource g e)) -> Graph k e
 groupResources graph fgroup = let
   resources = _graphResources graph
   -- we need a map resource -> group
