@@ -20,6 +20,9 @@ import Options.Applicative (Parser, strOption, long, short, metavar
                            , help, value, flag
                            , option, auto)
 
+-- import Text.Regex
+import Text.Regex.PCRE
+
 data ScaleMode = Log | Linear deriving (Read, Show )
 data OrderMode = ReorderTarget | OriginalOrder deriving (Show, Read)
 data AllocWidthMode = ABoxHeight | AConst deriving (Show, Read)
@@ -113,6 +116,17 @@ getOptions :: IO Options
 getOptions = OP.execParser opts where
   opts = OP.info (OP.helper <*> optionParser) OP.fullDesc
 
+resourceToColumn res = let
+ virtual =  map toLower (_resName res) =~ ("(-pre|mirror|rev)" :: String)
+            || abs (_resAmount res) > 60000
+ in case (_resType res, virtual) of
+    (Source, False) -> 1
+    (Target, True) -> 2
+    (Source, True) -> 3
+    (Target, False) -> 4
+
+  
+
 main :: IO()
 main = do 
   options <- getOptions
@@ -120,7 +134,7 @@ main = do
   conn <- SQL.connect credentials
   (resources, allocations) <- loadAllocations conn (opEntity options)
   let diag = renderAllocation param
-                              _resType
+                              resourceToColumn -- _resType
                               graph
       Right graph' = buildGraph resources allocations
       graph'' = (case opOrderMode options of 
