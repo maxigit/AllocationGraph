@@ -121,12 +121,13 @@ main = do
   (resources, allocations) <- loadAllocations conn (opEntity options)
   let diag = renderAllocation param
                               _resType
-                              (case opOrderMode options of 
-                                ReorderTarget -> orderTargets graph
-                                _ -> graph
-                              )
+                              graph
       Right graph' = buildGraph resources allocations
-      graph = groupResources graph' (groupFunction options)
+      graph'' = (case opOrderMode options of 
+                      ReorderTarget -> orderTargets graph'
+                      _ -> graph'
+                )
+      graph = groupResources graph'' (groupFunction options)
       param = RenderParameter width height width allocColour allocWidth
       width = 10
       height' Log _ box = width * log' where
