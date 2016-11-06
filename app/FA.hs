@@ -4,6 +4,7 @@
 import BasePrelude hiding((&),(.),id)
 import Control.Lens
 import AllocationGraph
+import AllocationGraph.Csv
 import AllocationGraph.Diagrams
 import Diagrams.Backend.SVG.CmdLine (mainWith)
 
@@ -159,7 +160,9 @@ main = do
       colours = cycle $ K.brewerSet K.BrBG 11 --  K.Set2 8
       resourceToColour = Map.fromList $ zip targets colours
       allocColour alloc = fromJust $ Map.lookup (_allocTarget alloc) resourceToColour
-  withArgs (opArgs options) $ mainWith diag
+  withArgs (opArgs options) $ do
+            mapM_ putStrLn (renderCsv graph)
+            mainWith diag
 
 
 supplierInvoice, supplierCredit, supplierPayment, supplierDeposit :: Int
@@ -182,10 +185,10 @@ loadAllocations conn supp = do
                       ++ " ORDER BY tran_date, trans_no"
       whereC table = table ++ "type IN " ++ (show (supplierInvoice, supplierCredit, supplierPayment, supplierDeposit))
                           ++ " AND " ++ table ++ "supplier_id = " ++ (show supp)
-  print resourceQuery
+  -- print resourceQuery
   rows <- SQL.query_ conn resourceQuery
   let resources = map toResource rows
-  mapM_ print resources
+  -- mapM_ print resources
 
   let allocQuery = fromString $ concat
         [ " SELECT trans_no_from, trans_type_from, trans_no_to, trans_type_to, amt "
@@ -201,7 +204,7 @@ loadAllocations conn supp = do
         , " ORDER by from_.tran_date, from_.trans_no " 
         ]
 
-  print allocQuery
+  -- print allocQuery
   rows' <- SQL.query_ conn allocQuery
   -- let types = rows' :: [(Int, Int, Int, Int, Double)]
 

@@ -1,0 +1,12 @@
+- [X] Add date
+- [X] add other fields   . supp_ref
+- [ ] Add variable sep ?
+- [X] pink unallocated
+- [X] add arrow mode
+- TODO OptParse
+  - [X] add sep
+  - [X] add start date
+  - [X] add end date
+  - [ ] add "focus" range
+  - [X] add date grouping
+   
