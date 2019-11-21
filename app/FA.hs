@@ -1,7 +1,5 @@
-
-
 {-# LANGUAGE OverloadedStrings, PartialTypeSignatures #-}
-import BasePrelude hiding((&),(.),id)
+import BasePrelude hiding((&),(.),id, option)
 import Control.Lens
 import AllocationGraph
 import AllocationGraph.Csv
