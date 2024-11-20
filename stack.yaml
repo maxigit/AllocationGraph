@@ -1,14 +1,26 @@
 # For more information, see: https://github.com/commercialhaskell/stack/blob/release/doc/yaml_configuration.md
 
 # Specifies the GHC version and set of packages available (e.g., lts-3.5, nightly-2015-09-21, ghc-7.10.2)
-resolver: lts-12.26
+resolver: lts-18.17
 
 # Local packages, usually specified by relative directory name
 packages:
 - '.'
 
 # Packages to be pulled from upstream that are not in the resolver (e.g., acme-missiles-0.3)
-extra-deps: []
+extra-deps:
+- diagrams-lib-1.4.5.1@sha256:20f551cdf4d217edc31c10d40530be5d73a8a7d3bc086102c8c841778670f18b,8233
+- diagrams-svg-1.4.3.1@sha256:9e8edfe5b19c59905830433f77bdd328cb5264f7ecbf823baa213184a415d00f,3117
+- palette-0.3.0.2@sha256:04e9fe9806ee246f9a8f61cfbf9dad03913b0a1f4860ecc9f195db7a8b6936d5,1535
+- active-0.2.0.15@sha256:56d95c2205a8e52911bf08784b9958be430036e6ea16521b957c3e27cc71235c,1792
+- diagrams-core-1.5.0@sha256:8ffd24eb97ce309b41c52e5fa3a8acee5e4063565919eb4d41abb5c219b3d49b,2971
+- dual-tree-0.2.3.0@sha256:be4b8ecb2ecef798f88ee569d043f3f19c32f6dd083329cd7cfcb482f0bc6233,2882
+- monoid-extras-0.6.1@sha256:294eaeb51e0d047500119131f133bc4a7988f330baa4bb20256995aae3385b33,2220
+- svg-builder-0.1.1@sha256:825ebc18c4e457efa1bc6ca5f90f5abc80566992e8ffdab6ccb782407a46db32,1569
+
+
+
+
 
 # Override default flag values for local packages and extra-deps
 flags: {}
@@ -37,11 +49,11 @@ nix:
     - pkg-config
     - curl
     - openssl
-    - libmysql
+    - libmysqlclient
     - pcre
     - zlib
     - glib
     - cairo
     - pango
   path:
-    - nixpkgs=/home/max/.nix-defexpr/channels/nixos-19.09
+    - nixpkgs=https://github.com/NixOS/nixpkgs/archive/1c1f5649bb9c1b0d98637c8c365228f57126f361.tar.gz
